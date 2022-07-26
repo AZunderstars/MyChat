@@ -23,7 +23,6 @@ def threaded(conn):
     workload()
     buf = conn.recv(MAX_BUFFER)
     conn.send(generate_response(buf))
-    conn.close()
 
 
 def start_server():
@@ -36,17 +35,17 @@ def start_server():
 
 def accept_connections(sock):
     conn, addr = sock.accept()
-    start_new_thread(threaded, (conn,))
+    with conn:
+        start_new_thread(threaded, (conn,))
 
 
 def main():
-    sock = start_server()
-    while True:
-        try:
-            accept_connections(sock)
-        except KeyboardInterrupt:
-            break
-    sock.close()
+    with start_server() as sock:
+        while True:
+            try:
+                accept_connections(sock)
+            except KeyboardInterrupt:
+                break
 
 
 if __name__ == '__main__':
