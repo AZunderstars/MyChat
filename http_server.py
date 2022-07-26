@@ -1,6 +1,8 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 import time
+from socketserver import ThreadingMixIn
+import threading
 
 hostName = "localhost"
 serverPort = 8080
@@ -9,6 +11,8 @@ serverPort = 8080
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
         time.sleep(10)
+        message = threading.currentThread().getName()
+        print(message)
         list_e = [f for f in os.listdir("."+self.path)]
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -22,8 +26,13 @@ class MyServer(BaseHTTPRequestHandler):
         self.wfile.write(bytes("</body></html>", "utf-8"))
 
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+    pass
+
+
 if __name__ == "__main__":
-    webServer = HTTPServer((hostName, serverPort), MyServer)
+    webServer = ThreadedHTTPServer((hostName, serverPort), MyServer)
     print("Server started http://%s:%s" % (hostName, serverPort))
 
     try:

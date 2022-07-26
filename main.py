@@ -1,22 +1,53 @@
 import socket
+from time import sleep
+from _thread import start_new_thread
 
-hostName = "localhost"
-serverPort = 8088
+HOST = "localhost"
+PORT = 8080
+MAX_BUFFER = 2000
+SLEEP_TIME = 5
+
+
+def workload():
+    sleep(SLEEP_TIME)
+
+
+def generate_response(buf):
+    items = buf.decode().split(",")
+    items_int = map(int, items)
+    resp = sum(items_int)
+    return str(resp).encode()
+
+
+def threaded(conn):
+    workload()
+    buf = conn.recv(MAX_BUFFER)
+    conn.send(generate_response(buf))
+    conn.close()
+
+
+def start_server():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((HOST, PORT))
+    sock.listen()
+    return sock
+
+
+def accept_connections(sock):
+    conn, addr = sock.accept()
+    start_new_thread(threaded, (conn,))
 
 
 def main():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((hostName, serverPort))
-        s.listen()
-        conn, addr = s.accept()
-        with conn:
-            data = conn.recv(2000).decode()
-            numbers = data.split(',')
-            result = sum(map(int, numbers))
-            conn.sendall(str(result).encode())
-            conn.close()
-        s.close()
+    sock = start_server()
+    while True:
+        try:
+            accept_connections(sock)
+        except KeyboardInterrupt:
+            break
+    sock.close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
